@@ -27,7 +27,10 @@ export async function GET() {
     return NextResponse.json({
       message: data?.[0]?.text ?? "No message found",
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
-  }
+    } catch (err) {
+    if (err instanceof Error) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Unknown error" }, { status: 500 });
+    }
 }
