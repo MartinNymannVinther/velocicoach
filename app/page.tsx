@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Hero from "./components/Hero";
+
+type Workout = { day: number; workout: string };
 
 export default function Home() {
   const [status, setStatus] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [level, setLevel] = useState<string | null>(null);
-  type Workout = { day: number; workout: string };
   const [plan, setPlan] = useState<Workout[]>([]);
-
 
   useEffect(() => {
     let id = localStorage.getItem("user_id");
@@ -56,28 +57,45 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>VelociCoach 🚴</h1>
-      {!level ? (
-        <>
-          <p>Vælg dit niveau:</p>
-          <button onClick={() => chooseLevel("begynder")}>Begynder</button>
-          <button onClick={() => chooseLevel("motion")}>Motion</button>
-          <button onClick={() => chooseLevel("licens")}>Licensrytter</button>
-        </>
-      ) : (
-        <>
-          <p>{status}</p>
-          <h2>Din ugeplan</h2>
-          <ul>
-            {plan.map((p) => (
-              <li key={p.day}>
-                Dag {p.day}: {p.workout}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+    <main>
+      <Hero />
+      <section id="onboarding" className="p-8 text-center">
+        {!level ? (
+          <>
+            <p className="mb-4">Vælg dit niveau:</p>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+              onClick={() => chooseLevel("begynder")}
+            >
+              Begynder
+            </button>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+              onClick={() => chooseLevel("motion")}
+            >
+              Motion
+            </button>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+              onClick={() => chooseLevel("licens")}
+            >
+              Licensrytter
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mb-4">{status}</p>
+            <h2 className="text-2xl font-bold mb-2">Din ugeplan</h2>
+            <ul className="text-left max-w-md mx-auto">
+              {plan.map((p) => (
+                <li key={p.day} className="border-b py-2">
+                  <span className="font-semibold">Dag {p.day}:</span> {p.workout}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
     </main>
   );
 }
