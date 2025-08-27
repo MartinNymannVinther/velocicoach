@@ -94,7 +94,8 @@ export default function Home() {
 
   return (
     <main className="p-8 text-center font-sans">
-      <h1 className="text-4xl font-bold mb-4">VelociCoach 🚴</h1>
+      <h1 className="text-4xl font-bold text-primary">VelociCoach 🚴</h1>
+      <p className="text-accent">Dette er accentfarven (gul)</p>
 
       {!user ? (
         <div className="mb-8">
