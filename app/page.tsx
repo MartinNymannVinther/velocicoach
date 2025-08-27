@@ -2,39 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { User } from "@supabase/supabase-js";
 
 type Workout = { day: number; workout: string };
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [level, setLevel] = useState<string | null>(null);
   const [plan, setPlan] = useState<Workout[]>([]);
   const [status, setStatus] = useState("");
 
-  // Hent session ved load
+  // Initialiser bruger og profil
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    async function init() {
+      const { data } = await supabase.auth.getUser();
       if (data.user) {
         setUser(data.user);
-        loadProfile(data.user.id);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("training_level")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile) {
+          setLevel(profile.training_level);
+          loadPlan(profile.training_level);
+        }
       }
-    });
-  }, []);
-
-  async function loadProfile(userId: string) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("training_level")
-      .eq("id", userId)
-      .single();
-
-    if (data) {
-      setLevel(data.training_level);
-      loadPlan(data.training_level);
     }
-  }
+    init();
+  }, []);
 
   async function loadPlan(level: string) {
     const res = await fetch(`/api/plan?training_level=${level}`);
@@ -60,7 +60,17 @@ export default function Home() {
     if (data.user) {
       setUser(data.user);
       setStatus("Login succes ✅");
-      loadProfile(data.user.id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("training_level")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profile) {
+        setLevel(profile.training_level);
+        loadPlan(profile.training_level);
+      }
     }
   }
 
@@ -71,7 +81,10 @@ export default function Home() {
       .upsert({ id: user.id, training_level: level })
       .select()
       .single();
-    if (error) setStatus(error.message);
+
+    if (error) {
+      setStatus(error.message);
+    }
     if (data) {
       setLevel(data.training_level);
       setStatus(`Du har valgt: ${data.training_level}`);
