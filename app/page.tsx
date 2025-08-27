@@ -1,23 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 export default function Home() {
   const [status, setStatus] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [level, setLevel] = useState<string | null>(null);
+  const [plan, setPlan] = useState<any[]>([]);
 
-  // Når siden loader → hent eller opret user_id
   useEffect(() => {
     let id = localStorage.getItem("user_id");
     if (!id) {
-      id = uuidv4();
+      id = crypto.randomUUID();
       localStorage.setItem("user_id", id);
     }
     setUserId(id);
 
-    // Hent eksisterende valg hvis det findes
     fetch(`/api/user?user_id=${id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -27,6 +25,16 @@ export default function Home() {
         }
       });
   }, []);
+
+  useEffect(() => {
+    if (level) {
+      fetch(`/api/plan?training_level=${level}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.plan) setPlan(data.plan);
+        });
+    }
+  }, [level]);
 
   async function chooseLevel(level: string) {
     if (!userId) return;
@@ -56,7 +64,17 @@ export default function Home() {
           <button onClick={() => chooseLevel("licens")}>Licensrytter</button>
         </>
       ) : (
-        <p>{status}</p>
+        <>
+          <p>{status}</p>
+          <h2>Din ugeplan</h2>
+          <ul>
+            {plan.map((p) => (
+              <li key={p.day}>
+                Dag {p.day}: {p.workout}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </main>
   );
