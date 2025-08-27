@@ -1,101 +1,176 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Hero from "./components/Hero";
+import { supabase } from "../lib/supabaseClient";
 
 type Workout = { day: number; workout: string };
 
 export default function Home() {
-  const [status, setStatus] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [user, setUser] = useState<any>(null);
   const [level, setLevel] = useState<string | null>(null);
   const [plan, setPlan] = useState<Workout[]>([]);
+  const [status, setStatus] = useState("");
 
+  // Hent session ved load
   useEffect(() => {
-    let id = localStorage.getItem("user_id");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("user_id", id);
-    }
-    setUserId(id);
-
-    fetch(`/api/user?user_id=${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.training_level) {
-          setLevel(data.training_level);
-          setStatus(`Du har valgt: ${data.training_level}`);
-        }
-      });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user);
+        loadProfile(data.user.id);
+      }
+    });
   }, []);
 
-  useEffect(() => {
-    if (level) {
-      fetch(`/api/plan?training_level=${level}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.plan) setPlan(data.plan);
-        });
+  async function loadProfile(userId: string) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("training_level")
+      .eq("id", userId)
+      .single();
+
+    if (data) {
+      setLevel(data.training_level);
+      loadPlan(data.training_level);
     }
-  }, [level]);
+  }
+
+  async function loadPlan(level: string) {
+    const res = await fetch(`/api/plan?training_level=${level}`);
+    const data = await res.json();
+    setPlan(data.plan);
+  }
+
+  async function signup() {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) setStatus(error.message);
+    if (data.user) {
+      setUser(data.user);
+      setStatus("Konto oprettet ✅");
+    }
+  }
+
+  async function login() {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) setStatus(error.message);
+    if (data.user) {
+      setUser(data.user);
+      setStatus("Login succes ✅");
+      loadProfile(data.user.id);
+    }
+  }
 
   async function chooseLevel(level: string) {
-    if (!userId) return;
-    setStatus("Gemmer...");
-    const res = await fetch("/api/user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, training_level: level }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setLevel(data.user.training_level);
-      setStatus(`Du har valgt: ${data.user.training_level}`);
-    } else {
-      setStatus(`Fejl: ${data.error}`);
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({ id: user.id, training_level: level })
+      .select()
+      .single();
+    if (error) setStatus(error.message);
+    if (data) {
+      setLevel(data.training_level);
+      setStatus(`Du har valgt: ${data.training_level}`);
+      loadPlan(data.training_level);
     }
   }
 
   return (
-    <main>
-      <Hero />
-      <section id="onboarding" className="p-8 text-center">
-        {!level ? (
-          <>
-            <p className="mb-4">Vælg dit niveau:</p>
+    <main className="p-8 text-center font-sans">
+      <h1 className="text-4xl font-bold mb-4">VelociCoach 🚴</h1>
+
+      {!user ? (
+        <div className="mb-8">
+          <input
+            type="email"
+            placeholder="Email"
+            className="border p-2 m-2"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="border p-2 m-2"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div>
             <button
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+              onClick={signup}
+              className="bg-green-500 text-white px-4 py-2 m-2 rounded"
+            >
+              Opret bruger
+            </button>
+            <button
+              onClick={login}
+              className="bg-blue-500 text-white px-4 py-2 m-2 rounded"
+            >
+              Log ind
+            </button>
+          </div>
+          <p>{status}</p>
+        </div>
+      ) : !level ? (
+        <>
+          <p>Vælg dit niveau:</p>
+          <button
+            onClick={() => chooseLevel("begynder")}
+            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+          >
+            Begynder
+          </button>
+          <button
+            onClick={() => chooseLevel("motion")}
+            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+          >
+            Motion
+          </button>
+          <button
+            onClick={() => chooseLevel("licens")}
+            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
+          >
+            Licensrytter
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="mb-4">{status}</p>
+          <h2 className="text-2xl font-bold mb-2">Din ugeplan</h2>
+          <ul className="text-left max-w-md mx-auto">
+            {plan.map((p) => (
+              <li key={p.day} className="border-b py-2">
+                Dag {p.day}: {p.workout}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6">
+            <p>Vil du ændre niveau?</p>
+            <button
               onClick={() => chooseLevel("begynder")}
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
             >
               Begynder
             </button>
             <button
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
               onClick={() => chooseLevel("motion")}
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
             >
               Motion
             </button>
             <button
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
               onClick={() => chooseLevel("licens")}
+              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
             >
               Licensrytter
             </button>
-          </>
-        ) : (
-          <>
-            <p className="mb-4">{status}</p>
-            <h2 className="text-2xl font-bold mb-2">Din ugeplan</h2>
-            <ul className="text-left max-w-md mx-auto">
-              {plan.map((p) => (
-                <li key={p.day} className="border-b py-2">
-                  <span className="font-semibold">Dag {p.day}:</span> {p.workout}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+          </div>
+        </>
+      )}
     </main>
   );
 }
