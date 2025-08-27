@@ -6,7 +6,9 @@ export default function Home() {
   const [status, setStatus] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [level, setLevel] = useState<string | null>(null);
-  const [plan, setPlan] = useState<any[]>([]);
+  type Workout = { day: number; workout: string };
+  const [plan, setPlan] = useState<Workout[]>([]);
+
 
   useEffect(() => {
     let id = localStorage.getItem("user_id");
