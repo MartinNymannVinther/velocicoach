@@ -1,190 +1,87 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
-
-type Workout = { day: number; workout: string };
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [user, setUser] = useState<User | null>(null);
-  const [level, setLevel] = useState<string | null>(null);
-  const [plan, setPlan] = useState<Workout[]>([]);
-  const [status, setStatus] = useState("");
-
-  // Initialiser bruger og profil
-  useEffect(() => {
-    async function init() {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUser(data.user);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("training_level")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profile) {
-          setLevel(profile.training_level);
-          loadPlan(profile.training_level);
-        }
-      }
-    }
-    init();
-  }, []);
-
-  async function loadPlan(level: string) {
-    const res = await fetch(`/api/plan?training_level=${level}`);
-    const data = await res.json();
-    setPlan(data.plan);
-  }
-
-  async function signup() {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) setStatus(error.message);
-    if (data.user) {
-      setUser(data.user);
-      setStatus("Konto oprettet ✅");
-    }
-  }
-
-  async function login() {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) setStatus(error.message);
-    if (data.user) {
-      setUser(data.user);
-      setStatus("Login succes ✅");
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("training_level")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profile) {
-        setLevel(profile.training_level);
-        loadPlan(profile.training_level);
-      }
-    }
-  }
-
-  async function chooseLevel(level: string) {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert({ id: user.id, training_level: level })
-      .select()
-      .single();
-
-    if (error) {
-      setStatus(error.message);
-    }
-    if (data) {
-      setLevel(data.training_level);
-      setStatus(`Du har valgt: ${data.training_level}`);
-      loadPlan(data.training_level);
-    }
-  }
-
   return (
-    <main className="p-8 text-center font-sans">
-      <h1 className="text-4xl font-bold text-primary">VelociCoach 🚴</h1>
-      <p className="text-accent">Dette er accentfarven (gul)</p>
-
-      {!user ? (
-        <div className="mb-8">
-          <input
-            type="email"
-            placeholder="Email"
-            className="border p-2 m-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="border p-2 m-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <div>
-            <button
-              onClick={signup}
-              className="bg-green-500 text-white px-4 py-2 m-2 rounded"
-            >
-              Opret bruger
-            </button>
-            <button
-              onClick={login}
-              className="bg-blue-500 text-white px-4 py-2 m-2 rounded"
-            >
-              Log ind
-            </button>
-          </div>
-          <p>{status}</p>
+    <main className="font-sans">
+ 
+      {/* Hero Section */}
+      <section
+        className="relative h-[80vh] flex items-center justify-center text-center text-white"
+        style={{
+          backgroundImage: "url('/images/hero-cyclist.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="relative z-10 max-w-2xl px-4">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            Take your cycling to the next level.
+          </h1>
+          <p className="text-lg md:text-xl mb-8">
+            Get personalized training plans for your cycling goals and track
+            your progress with ease.
+          </p>
+          <Link
+            href="/signup"
+            className="bg-accent text-black px-6 py-3 rounded-full font-semibold text-lg hover:bg-yellow-400 transition"
+          >
+            Get Started
+          </Link>
         </div>
-      ) : !level ? (
-        <>
-          <p>Vælg dit niveau:</p>
-          <button
-            onClick={() => chooseLevel("begynder")}
-            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-          >
-            Begynder
-          </button>
-          <button
-            onClick={() => chooseLevel("motion")}
-            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-          >
-            Motion
-          </button>
-          <button
-            onClick={() => chooseLevel("licens")}
-            className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-          >
-            Licensrytter
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="mb-4">{status}</p>
-          <h2 className="text-2xl font-bold mb-2">Din ugeplan</h2>
-          <ul className="text-left max-w-md mx-auto">
-            {plan.map((p) => (
-              <li key={p.day} className="border-b py-2">
-                Dag {p.day}: {p.workout}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-6">
-            <p>Vil du ændre niveau?</p>
-            <button
-              onClick={() => chooseLevel("begynder")}
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-            >
-              Begynder
-            </button>
-            <button
-              onClick={() => chooseLevel("motion")}
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-            >
-              Motion
-            </button>
-            <button
-              onClick={() => chooseLevel("licens")}
-              className="bg-blue-600 text-white px-4 py-2 m-2 rounded"
-            >
-              Licensrytter
-            </button>
+      </section>
+
+      {/* How it works */}
+      <section id="features" className="py-20 px-8 bg-white text-gray-800">
+        <div className="max-w-5xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">How it works</h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+          <div className="text-center">
+            <Image
+              src="/images/goal.jpg"
+              alt="Choose your goal"
+              width={400}
+              height={250}
+              className="rounded-xl shadow-md mx-auto"
+            />
+            <h3 className="text-xl font-semibold mt-4">Choose your goal</h3>
+            <p className="text-gray-600 mt-2">
+              Select your experience level and cycling objective.
+            </p>
           </div>
-        </>
-      )}
+
+          <div className="text-center">
+            <Image
+              src="/images/plan.jpg"
+              alt="Follow your plan"
+              width={400}
+              height={250}
+              className="rounded-xl shadow-md mx-auto"
+            />
+            <h3 className="text-xl font-semibold mt-4">Follow your plan</h3>
+            <p className="text-gray-600 mt-2">
+              Get your personalized plan and start training.
+            </p>
+          </div>
+
+          <div className="text-center">
+            <Image
+              src="/images/progress.jpg"
+              alt="Track your progress"
+              width={400}
+              height={250}
+              className="rounded-xl shadow-md mx-auto"
+            />
+            <h3 className="text-xl font-semibold mt-4">Track your progress</h3>
+            <p className="text-gray-600 mt-2">
+              Analyze your ride data and improve your performance.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
