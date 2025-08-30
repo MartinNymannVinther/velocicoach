@@ -6,9 +6,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Typing af vores daglige view (tilpas efter din DB)
+type DailyPlan = {
+  user_id: string;
+  planned_date: string; // ISO date string
+  workout: string;
+  status: "✔" | "✖" | "⏳";
+};
+
 export async function GET(req: Request) {
   try {
-    // Hent user_id fra query param
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("user_id");
 
@@ -19,7 +26,6 @@ export async function GET(req: Request) {
       );
     }
 
-    // Query vores daglige view
     const { data, error } = await supabase
       .from("user_plan_overview")
       .select("*")
@@ -30,10 +36,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data, { status: 200 });
-  } catch (err: any) {
+    return NextResponse.json(data as DailyPlan[], { status: 200 });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
     return NextResponse.json(
-      { error: err.message || "Unknown error" },
+      { error: "Unknown error occurred" },
       { status: 500 }
     );
   }
