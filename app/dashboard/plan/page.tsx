@@ -35,7 +35,7 @@ export default function PlanPage() {
         // 1. Find brugerens plan
         const { data: userPlans, error: userPlanError } = await supabase
           .from("user_plans")
-          .select("template_id, start_date") // <-- rettet felt (ikke plan_id)
+          .select("template_id, start_date")
           .eq("user_id", auth.user.id)
           .limit(1);
 
@@ -66,4 +66,60 @@ export default function PlanPage() {
           });
           setPlanDays(mapped);
         }
-      } catch
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.error("Fejl i loadData:", err.message);
+        } else {
+          console.error("Ukendt fejl i loadData");
+        }
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-neutral">Indlæser plan...</p>
+      </main>
+    );
+  }
+
+  if (!planDays.length) {
+    return (
+      <main className="flex min-h-screen bg-neutral-light p-6">
+        <div className="bg-white shadow-md rounded-xl p-6 max-w-3xl w-full mx-auto">
+          <h1 className="text-2xl font-bold text-primary mb-6">
+            Din træningsplan
+          </h1>
+          <p className="text-neutral-dark">
+            Du har endnu ikke valgt en plan.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen bg-neutral-light p-6">
+      <div className="bg-white shadow-md rounded-xl p-6 max-w-3xl w-full mx-auto">
+        <h1 className="text-2xl font-bold text-primary mb-6">
+          Din træningsplan
+        </h1>
+        <ul className="divide-y divide-neutral-light">
+          {planDays.map((p, i) => (
+            <li key={i} className="py-3 flex justify-between">
+              <span className="font-medium text-neutral-dark">
+                {p.date.toLocaleDateString("da-DK")}
+              </span>
+              <span className="text-neutral">{p.workout}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </main>
+  );
+}
