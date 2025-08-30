@@ -27,7 +27,7 @@ export default function RootLayout({
    <html lang="da">
       <body>
         <NavBar />
-        <main className="pt-20">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

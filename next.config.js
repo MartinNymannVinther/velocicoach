@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Sikrer at CSS bliver processeret med PostCSS/Tailwind
-    css: true,
-  },
+  // tom eller dine andre settings
 };
 
-module.exports = nextConfig;
+export default nextConfig;
